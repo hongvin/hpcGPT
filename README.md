@@ -1,75 +1,174 @@
-# privateGPT
-Ask questions to your documents without an internet connection, using the power of LLMs. 100% private, no data leaves your execution environment at any point. You can ingest documents and ask questions without an internet connection!
 
-Built with [LangChain](https://github.com/hwchase17/langchain) and [GPT4All](https://github.com/nomic-ai/gpt4all) and [LlamaCpp](https://github.com/ggerganov/llama.cpp)
+# pdfGPT
+### Problem Description : 
+1. When you pass a large text to Open AI, it suffers from a 4K token limit. It cannot take an entire pdf file as an input
+2. Open AI sometimes becomes overtly chatty and returns irrelevant response not directly related to your query. This is because Open AI uses poor embeddings.
+3. ChatGPT cannot directly talk to external data. Some solutions use Langchain but it is token hungry if not implemented correctly.
+4. There are a number of solutions like https://www.chatpdf.com, https://www.bespacific.com/chat-with-any-pdf, https://www.filechat.io they have poor content quality and are prone to hallucination problem. One good way to avoid hallucinations and improve truthfulness is to use improved embeddings. To solve this problem, I propose to improve embeddings with Universal Sentence Encoder family of algorithms (Read more here: https://tfhub.dev/google/collections/universal-sentence-encoder/1). 
 
-<img width="902" alt="demo" src="https://user-images.githubusercontent.com/721666/236942256-985801c9-25b9-48ef-80be-3acbb4575164.png">
+### Solution: What is PDF GPT ?
+1. PDF GPT allows you to chat with an uploaded PDF file using GPT functionalities.
+2. The application intelligently breaks the document into smaller chunks and employs a powerful Deep Averaging Network Encoder to generate embeddings.
+3. A semantic search is first performed on your pdf content and the most relevant embeddings are passed to the Open AI.
+4. A custom logic generates precise responses. The returned response can even cite the page number in square brackets([]) where the information is located, adding credibility to the responses and helping to locate pertinent information quickly. The Responses are much better than the naive responses by Open AI.
+5. Andrej Karpathy mentioned in this post that KNN algorithm is most appropriate for similar problems: https://twitter.com/karpathy/status/1647025230546886658
+6. Enables APIs on Production using **[langchain-serve](https://github.com/jina-ai/langchain-serve)**.
 
-# Environment Setup
+### Demo
+1. **Demo URL**: https://bit.ly/41ZXBJM
+2. **Original Source code** (for demo hosted in Hugging Face) : https://huggingface.co/spaces/bhaskartripathi/pdfChatter/blob/main/app.py
 
-In order to set your environment up to run the code here, first install all requirements:
+**NOTE**: Please star this project if you like it!
 
-```shell
-pip install -r requirements.txt
+### Docker
+Run `docker-compose -f docker-compose.yaml up` to use it with Docker compose.
+
+
+## Use `pdfGPT` on Production using [langchain-serve](https://github.com/jina-ai/langchain-serve)
+
+#### Local playground
+1. Run `lc-serve deploy local api` on one terminal to expose the app as API using langchain-serve.
+2. Run `python app.py` on another terminal for a local gradio playground.
+3. Open `http://localhost:7860` on your browser and interact with the app.
+
+
+#### Cloud deployment
+
+Make `pdfGPT` production ready by deploying it on [Jina Cloud](https://cloud.jina.ai/).
+
+`lc-serve deploy jcloud api` 
+
+<details>
+<summary>Show command output</summary>
+
+```text
+╭──────────────┬──────────────────────────────────────────────────────────────────────────────────────╮
+│ App ID       │                                 langchain-3ff4ab2c9d                                 │
+├──────────────┼──────────────────────────────────────────────────────────────────────────────────────┤
+│ Phase        │                                       Serving                                        │
+├──────────────┼──────────────────────────────────────────────────────────────────────────────────────┤
+│ Endpoint     │                      https://langchain-3ff4ab2c9d.wolf.jina.ai                       │
+├──────────────┼──────────────────────────────────────────────────────────────────────────────────────┤
+│ App logs     │                               dashboards.wolf.jina.ai                                │
+├──────────────┼──────────────────────────────────────────────────────────────────────────────────────┤
+│ Swagger UI   │                    https://langchain-3ff4ab2c9d.wolf.jina.ai/docs                    │
+├──────────────┼──────────────────────────────────────────────────────────────────────────────────────┤
+│ OpenAPI JSON │                https://langchain-3ff4ab2c9d.wolf.jina.ai/openapi.json                │
+╰──────────────┴──────────────────────────────────────────────────────────────────────────────────────╯
 ```
 
-Rename example.env to .env and edit the variables appropriately.
-```
-MODEL_TYPE: supports LlamaCpp or GPT4All
-PERSIST_DIRECTORY: is the folder you want your vectorstore in
-LLAMA_EMBEDDINGS_MODEL: Path to your LlamaCpp supported embeddings model
-MODEL_PATH: Path to your GPT4All or LlamaCpp supported LLM
-MODEL_N_CTX: Maximum token limit for both embeddings and LLM models
-```
+</details>
 
-Then, download the 2 models and place them in a directory of your choice (Ensure to update your .env with the model paths):
-- LLM: default to [ggml-gpt4all-j-v1.3-groovy.bin](https://gpt4all.io/models/ggml-gpt4all-j-v1.3-groovy.bin). If you prefer a different GPT4All-J compatible model, just download it and reference it in your `.env` file.
-- Embedding: default to [ggml-model-q4_0.bin](https://huggingface.co/Pi3141/alpaca-native-7B-ggml/resolve/397e872bf4c83f4c642317a5bf65ce84a105786e/ggml-model-q4_0.bin). If you prefer a different compatible Embeddings model, just download it and reference it in your `.env` file.
+#### Interact using cURL
 
-## Test dataset
-This repo uses a [state of the union transcript](https://github.com/imartinez/privateGPT/blob/main/source_documents/state_of_the_union.txt) as an example.
+(Change the URL to your own endpoint)
 
-## Instructions for ingesting your own dataset
+**PDF url**
+```bash
+curl -X 'POST' \
+  'https://langchain-3ff4ab2c9d.wolf.jina.ai/ask_url' \
+  -H 'accept: application/json' \
+  -H 'Content-Type: application/json' \
+  -d '{
+  "url": "https://uiic.co.in/sites/default/files/uploads/downloadcenter/Arogya%20Sanjeevani%20Policy%20CIS_2.pdf",
+  "question": "What'\''s the cap on room rent?",
+  "envs": {
+    "OPENAI_API_KEY": "'"${OPENAI_API_KEY}"'"
+    }
+}'
 
-Put any and all of your .txt, .pdf, or .csv files into the source_documents directory
-
-Run the following command to ingest all the data.
-
-```shell
-python ingest.py
+{"result":" Room rent is subject to a maximum of INR 5,000 per day as specified in the Arogya Sanjeevani Policy [Page no. 1].","error":"","stdout":""}
 ```
 
-It will create a `db` folder containing the local vectorstore. Will take time, depending on the size of your documents.
-You can ingest as many documents as you want, and all will be accumulated in the local embeddings database. 
-If you want to start from an empty database, delete the `db` folder.
+**PDF file**
+```bash
+QPARAMS=$(echo -n 'input_data='$(echo -n '{"question": "What'\''s the cap on room rent?", "envs": {"OPENAI_API_KEY": "'"${OPENAI_API_KEY}"'"}}' | jq -s -R -r @uri))
+curl -X 'POST' \
+  'https://langchain-3ff4ab2c9d.wolf.jina.ai/ask_file?'"${QPARAMS}" \
+  -H 'accept: application/json' \
+  -H 'Content-Type: multipart/form-data' \
+  -F 'file=@Arogya_Sanjeevani_Policy_CIS_2.pdf;type=application/pdf'
 
-Note: during the ingest process no data leaves your local environment. You could ingest without an internet connection.
-
-## Ask questions to your documents, locally!
-In order to ask a question, run a command like:
-
-```shell
-python privateGPT.py
+{"result":" Room rent is subject to a maximum of INR 5,000 per day as specified in the Arogya Sanjeevani Policy [Page no. 1].","error":"","stdout":""}
 ```
 
-And wait for the script to require your input. 
+## Running on localhost
+### Credits : [Adithya S](https://github.com/200901002)
+1. Pull the image by entering the following command in your terminal or command prompt:
+```bash
+docker pull registry.hf.space/bhaskartripathi-pdfchatter:latest
+```
+2. Download the Universal Sentence Encoder locally to your project's root folder. This is important because otherwise, 915 MB will be downloaded at runtime everytime you run it.
+3. Download the encoder using this [link](https://tfhub.dev/google/universal-sentence-encoder/4?tf-hub-format=compressed).
+4. Extract the downloaded file and place it in your project's root folder as shown below:
+```text
+Root folder of your project
+└───Universal Sentence Encoder
+|   ├───assets
+|   └───variables
+|   └───saved_model.pb
+|
+└───app.py
+```
+5. If you have downloaded it locally, replace the code on line 68 in the API file:
+```python
+self.use = hub.load('https://tfhub.dev/google/universal-sentence-encoder/4')
+```
+with:
+```python
+self.use = hub.load('./Universal Sentence Encoder/')
+```
+6. Now, To run PDF-GPT, enter the following command:
 
-```shell
-> Enter a query:
+```bash
+docker run -it -p 7860:7860 --platform=linux/amd64 registry.hf.space/bhaskartripathi-pdfchatter:latest python app.py
 ```
 
-Hit enter. You'll need to wait 20-30 seconds (depending on your machine) while the LLM model consumes the prompt and prepares the answer. Once done, it will print the answer and the 4 sources it used as context from your documents; you can then ask another question without re-running the script, just wait for the prompt again. 
+## UML
+```mermaid
+sequenceDiagram
+    participant User
+    participant System
 
-Note: you could turn off your internet connection, and the script inference would still work. No data gets out of your local environment.
+    User->>System: Enter API Key
+    User->>System: Upload PDF/PDF URL
+    User->>System: Ask Question
+    User->>System: Submit Call to Action
 
-Type `exit` to finish the script.
+    System->>System: Blank field Validations
+    System->>System: Convert PDF to Text
+    System->>System: Decompose Text to Chunks (150 word length)
+    System->>System: Check if embeddings file exists
+    System->>System: If file exists, load embeddings and set the fitted attribute to True
+    System->>System: If file doesn't exist, generate embeddings, fit the recommender, save embeddings to file and set fitted attribute to True
+    System->>System: Perform Semantic Search and return Top 5 Chunks with KNN
+    System->>System: Load Open AI prompt
+    System->>System: Embed Top 5 Chunks in Open AI Prompt
+    System->>System: Generate Answer with Davinci
 
-# How does it work?
-Selecting the right local models and the power of `LangChain` you can run the entire pipeline locally, without any data leaving your environment, and with reasonable performance.
+    System-->>User: Return Answer
+```
 
-- `ingest.py` uses `LangChain` tools to parse the document and create embeddings locally using `LlamaCppEmbeddings`. It then stores the result in a local vector database using `Chroma` vector store. 
-- `privateGPT.py` uses a local LLM based on `GPT4All-J` or `LlamaCpp` to understand questions and create answers. The context for the answers is extracted from the local vector store using a similarity search to locate the right piece of context from the docs.
-- `GPT4All-J` wrapper was introduced in LangChain 0.0.162.
+### Flowchart
+```mermaid
+flowchart TB
+A[Input] --> B[URL]
+A -- Upload File manually --> C[Parse PDF]
+B --> D[Parse PDF] -- Preprocess --> E[Dynamic Text Chunks]
+C -- Preprocess --> E[Dynamic Text Chunks with citation history]
+E --Fit-->F[Generate text embedding with Deep Averaging Network Encoder on each chunk]
+F -- Query --> G[Get Top Results]
+G -- K-Nearest Neighbour --> K[Get Nearest Neighbour - matching citation references]
+K -- Generate Prompt --> H[Generate Answer]
+H -- Output --> I[Output]
+```
+## Star History
 
-# Disclaimer
-This is a test project to validate the feasibility of a fully private solution for question answering using LLMs and Vector embeddings. It is not production ready, and it is not meant to be used in production. The models selection is not optimized for performance, but for privacy; but it is possible to use different models and vectorstores to improve performance.
+[![Star History Chart](https://api.star-history.com/svg?repos=bhaskatripathi/pdfGPT&type=Date)](https://star-history.com/#bhaskatripathi/pdfGPT&Date)
+I am looking for more contributors from the open source community who can take up backlog items voluntarily and maintain the application jointly with me.
+
+## Also Try:
+This app creates schematic architecture diagrams, UML, flowcharts, Gantt charts and many more. You simple need to mention the usecase in natural language and it will create the desired diagram.
+https://github.com/bhaskatripathi/Text2Diagram
+
+
