@@ -1,5 +1,4 @@
 import os
-from dotenv import load_dotenv
 from langchain.document_loaders import TextLoader, PDFMinerLoader, CSVLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.vectorstores import Chroma
@@ -7,14 +6,12 @@ from langchain.embeddings import LlamaCppEmbeddings
 from constants import PERSIST_DIRECTORY
 from constants import CHROMA_SETTINGS
 
-load_dotenv()
-
 def main():
-    llama_embeddings_model = os.environ.get('LLAMA_EMBEDDINGS_MODEL')
-    persist_directory = os.environ.get('PERSIST_DIRECTORY')
-    model_n_ctx = os.environ.get('MODEL_N_CTX')
+    llama_embeddings_model = 'models/ggml-model-q4_0.bin'
+    persist_directory = 'db'
+    model_n_ctx = 1000
     # Load document and split in chunks
-    for root, dirs, files in os.walk("source_documents"):
+    for root, dirs, files in os.walk("files"):
         for file in files:
             if file.endswith(".txt"):
                 loader = TextLoader(os.path.join(root, file), encoding="utf8")

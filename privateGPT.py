@@ -1,4 +1,3 @@
-from dotenv import load_dotenv
 from langchain.chains import RetrievalQA
 from langchain.embeddings import LlamaCppEmbeddings
 from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
@@ -6,14 +5,12 @@ from langchain.vectorstores import Chroma
 from langchain.llms import GPT4All, LlamaCpp
 import os
 
-load_dotenv()
+llama_embeddings_model = 'models/ggml-model-q4_0.bin'
+persist_directory = 'db'
 
-llama_embeddings_model = os.environ.get("LLAMA_EMBEDDINGS_MODEL")
-persist_directory = os.environ.get('PERSIST_DIRECTORY')
-
-model_type = os.environ.get('MODEL_TYPE')
-model_path = os.environ.get('MODEL_PATH')
-model_n_ctx = os.environ.get('MODEL_N_CTX')
+model_type = 'GPT4All'
+model_path = 'models/ggml-gpt4all-j-v1.3-groovy.bin'
+model_n_ctx = 1000
 
 from constants import CHROMA_SETTINGS
 
